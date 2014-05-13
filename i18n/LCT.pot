@@ -1,0 +1,66 @@
+# Translation of OpenERP Server.
+# This file contains the translation of the following modules:
+#	* account
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OpenERP Server 7.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-06-14 22:29+0000\n"
+"PO-Revision-Date: 2013-06-14 22:29+0000\n"
+"Last-Translator: <>\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: account.voucher
+#: code:addons/LCT_supplier_invoice/account.py:65
+#, python-format
+msgid "The invoice must be approved before payment."
+msgstr ""
+
+
+#. module: account.invoice.line
+#: model:ir.ui.menu,name:LCT_supplier_invoice.menu_action_invoice_line
+msgid "Supplier invoice lines"
+msgstr ""
+
+#. module: account.export
+#: model:ir.ui.menu,name:LCT_supplier_invoice.menu_action_export_invoice
+#: model:ir.actions.act_window,name:LCT_supplier_invoice.action_export_invoice
+msgid "Send invoices to CMMS"
+msgstr ""
+
+#. module: res.partner
+#: field:res.partner,is_cmms_supplier:0
+msgid "CMMS Supplier"
+msgstr ""
+
+#. module: account.invoice
+#: field:account.invoice,template:0
+msgid "Template"
+msgstr ""
+
+#. module: account.voucher
+#: field:account.voucher,template:0
+msgid "Template"
+msgstr ""
+
+#. module: account.invoice
+#: field:account.invoice,approved:0
+msgid "Approved"
+msgstr ""
+
+#. module: account.invoice
+#: code:addons/LCT_supplier_invoice/account.py:93
+#, python-format
+msgid "Supplier Invoice Number"
+msgstr ""
+
+#. module: account.invoice
+#: code:addons/LCT_supplier_invoice/account.py:94
+#, python-format
+msgid "This Supplier Invoice Number is already used!"
+msgstr ""

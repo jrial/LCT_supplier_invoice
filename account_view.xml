@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+
+        <record id="view_partner_form" model="ir.ui.view">
+            <field name="name">res.partner.form</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="model">res.partner</field>
+            <field name="arch" type="xml">
+                <xpath expr="//form/sheet/notebook/page[@string='Sales &amp; Purchases']/group/group/field[@name='supplier']" position="after">
+                    <field name="is_cmms_supplier"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_invoice_supplier" model="ir.ui.view">
+            <field name="name">account.invoice.supplier.pay.lct</field>
+            <field name="inherit_id" ref="account_voucher.view_invoice_supplier"/>
+            <field name="model">account.invoice</field>
+            <field name="arch" type="xml">
+                <xpath expr="//button[@name='invoice_pay_customer']" position="replace">
+                    <!-- <button name="invoice_pay_customer" type="object" string="Pay" attrs="{'invisible': ['!', '|', '&amp;', ('state', '=', 'synchronized'), ('is_cmms_supplier', '=', True), '&amp;', ('state', '=', 'open'), ('is_cmms_supplier', '=', False)]}" class="oe_highlight" groups="base.group_user"/>         -->
+                    <button name="invoice_pay_customer" type="object" string="Pay" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="invoice_supplier_tree_lct" model="ir.ui.view">
+            <field name="name">account.invoice.supplier.tree.lct</field>
+            <field name="inherit_id" ref="account.invoice_tree"/>
+            <field name="model">account.invoice</field>
+            <field name="arch" type="xml"> 
+                <xpath expr="//field[@name='date_due']" position="after">
+                    <field name="template"/>
+                </xpath>
+                <xpath expr="//field[@name='origin']" position="replace">
+                    <field name="origin" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='reference']" position="replace">
+                    <field name="reference" invisible="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="invoice_supplier_form_lct" model="ir.ui.view">
+            <field name="name">account.invoice.supplier.form.lct</field>
+            <field name="inherit_id" ref="account_asset.view_invoice_asset_category"/>
+            <field name="model">account.invoice</field>
+            <field name="arch" type="xml">        
+                <xpath expr="//button[@name='invoice_open']" position="replace">
+                    <button name="invoice_open" states='draft' string="Validate" class="oe_highlight" attrs="{'invisible': ['|', ('is_cmms_supplier', '=', True)]}"/>
+                    <button name="invoice_synchronize" states="draft" string="Synchronize" class="oe_highlight" invisible="1"/>
+                    <button name="val_synch" type="object" states="synchronized" string="Validate Synch" class="oe_highlight" attrs="{'invisible': ['|', ('synchronized', '=', False)]}"/>
+                </xpath>
+                <xpath expr="//field[@name='origin']" position="replace">
+                    <field name="origin" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='reference_type']" position="replace">
+                    <field name="reference_type" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='reference']" position="replace">
+                    <field name="reference" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='fiscal_position']" position="replace">
+                    <field name="fiscal_position" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='state']" position="replace">
+                    <field name="state" widget="statusbar" statusbar_visible="draft,sent,open,synchronized,paid"/>
+                </xpath>
+                <field name='number' position="replace">
+                    <field name="number" attrs="{'invisible': [('state', '=', 'draft')]}" class="oe_inline"/>
+                </field>
+                <xpath expr="//sheet[@string='Supplier Invoice']" position="attributes">
+                    <attribute name="class">oe_supplier</attribute>
+                </xpath>
+                <xpath expr="//field[@name='supplier_invoice_number']" position="after">
+                    <field name="po_number"/>
+                </xpath>
+                <xpath expr="//field[@name='supplier_invoice_number']" position="attributes">
+                    <attribute name="on_change">onchange_supplier_number(supplier_invoice_number)</attribute>
+                </xpath>
+                <xpath expr="//field[@name='journal_id']" position="replace">
+                    <field name="journal_id" groups="account.group_account_invoice"
+                                on_change="onchange_journal_id(journal_id, context)" widget="selection"/>
+                    <field name="is_cmms_supplier" invisible="1"/>
+                    <field name="approved"/>
+                    <field name="template"/>
+                    <field name="synchronized" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='account_id']" position="replace">
+                    <field domain="[('company_id', '=', company_id), ('type', '=', 'payable')]" name="account_id" groups="account.group_account_invoice"/>
+                </xpath>
+                <xpath expr="//field[@name='invoice_line']" position="replace">
+                    <field context="{'partner_id': partner_id, 'price_type': context.get('price_type') or False, 'type': type}" name="invoice_line">
+                        <tree string="Invoice lines" editable="bottom">
+                            <field name="state" invisible="1"/>
+                            <field name="sequence" widget="handle" invisible="1"/>
+                            <field name="quantity" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="uos_id" groups="product.group_uom"
+                                on_change="uos_id_change(product_id, uos_id, quantity, name, parent.type, parent.partner_id, parent.fiscal_position, price_unit, parent.currency_id, context, parent.company_id)" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="price_unit" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="price_subtotal"/>
+                            <field name="discount" groups="sale.group_discount_per_so_line" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="account_id" groups="account.group_account_invoice"
+                                domain="[('company_id', '=', parent.company_id), ('journal_id', '=', parent.journal_id), ('type', '=', 'other')]"
+                                on_change="onchange_account_id(product_id, parent.partner_id, parent.type, parent.fiscal_position,account_id)" />
+                            <field name="account_analytic_id" string="Cost Center" groups="analytic.group_analytic_accounting"
+                                domain="[('type','!=','view'), ('company_id', '=', parent.company_id)]" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="cost_purpose" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="object_nr" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="object_description" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="project_nr" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="project_description" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="wo_nr" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="name" string="WO description" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="part_nr" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="part_description" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="po_nr" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="po_line" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="asset" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="deviation" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="product_id" invisible="1" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="company_id" invisible="1" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                            <field name="invoice_line_tax_id" widget="many2many_tags" context="{'type':parent.type}"
+                                domain="[('parent_id','=',False),('company_id', '=', parent.company_id)]" attrs="{'readonly': [('state','=','synchronized')]}"/>
+                        </tree>
+                    </field>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="invoice_form_lct" model="ir.ui.view">
+            <field name="name">account.invoice.form.lct</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="account.invoice_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='fiscal_position']" position="replace">
+                    <field name="fiscal_position" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='invoice_line']" position="replace">
+                    <field name="invoice_line" nolabel="1" widget="one2many_list" context="{'type': type}">
+                        <tree string="Invoice Lines" editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="product_id"
+                                on_change="product_id_change(product_id, uos_id, quantity, name, parent.type, parent.partner_id, parent.fiscal_position, price_unit, parent.currency_id, context, parent.company_id)" invisible="1"/>
+                            <field name="name"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="account_id" groups="account.group_account_invoice"
+                                domain="[('company_id', '=', parent.company_id), ('journal_id', '=', parent.journal_id), ('type', '=', 'other')]"
+                                on_change="onchange_account_id(product_id, parent.partner_id, parent.type, parent.fiscal_position,account_id)"/>
+                            <field name="account_analytic_id" string="Profit Center" groups="analytic.group_analytic_accounting"
+                                domain="[('type','!=','view'), ('company_id', '=', parent.company_id)]"/>
+                            <field name="quantity"/>
+                            <field name="uos_id" groups="product.group_uom"
+                                on_change="uos_id_change(product_id, uos_id, quantity, name, parent.type, parent.partner_id, parent.fiscal_position, price_unit, parent.currency_id, context, parent.company_id)"/>
+                            <field name="price_unit"/>
+                            <field name="discount" groups="sale.group_discount_per_so_line"/>
+                            <field name="invoice_line_tax_id" widget="many2many_tags" context="{'type':parent.type}"
+                                domain="[('parent_id','=',False),('company_id', '=', parent.company_id)]"/>
+                            <field name="price_subtotal"/>
+                        </tree>
+                    </field>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_invoice_line_tree" model="ir.ui.view">
+            <field name="name">account.invoice.line.tree</field>
+            <field name="model">account.invoice.line</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <tree string="Invoice Line" create="false" edit="false">
+                    <field name="quantity"/>
+                    <field name="uos_id"/>
+                    <field name="price_unit"/>
+                    <field name="price_subtotal" sum="Total"/>
+                    <field name="discount" groups="sale.group_discount_per_so_line"/>
+                    <field name="account_id" groups="account.group_account_invoice"/>
+                    <field name="account_analytic_id" string="Cost Center" groups="analytic.group_analytic_accounting"/>
+                    <field name="cost_purpose"/>
+                    <field name="object_nr"/>
+                    <field name="object_description"/>
+                    <field name="project_nr"/>
+                    <field name="project_description"/>
+                    <field name="wo_nr"/>
+                    <field name="name" string="WO description"/>
+                    <field name="part_nr"/>
+                    <field name="part_description"/>
+                    <field name="po_nr"/>
+                    <field name="po_line"/>
+                    <field name="asset"/>
+                    <field name="deviation"/>
+                    <field name="invoice_id"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_invoice_line_form" model="ir.ui.view">
+            <field name="name">account.invoice.line.form</field>
+            <field name="model">account.invoice.line</field>
+            <field name="priority">1</field>
+            <field name="arch" type="xml">
+                <form string="Invoice Line" version="7.0" create="false" edit="false">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="product_id" invisible="1"/>
+                                <label for="quantity"/>
+                                <div>
+                                    <field name="quantity" class="oe_inline"/>
+                                </div>
+                                <field name="uos_id" />
+                                <field name="price_unit"/>
+                                <field name="discount" groups="sale.group_discount_per_so_line"/>
+                            </group>
+                            <group>
+                                <field name="account_id" groups="account.group_account_invoice"/>
+                                <field name="invoice_line_tax_id" widget="many2many_tags"/>
+                                <field name="account_analytic_id" string="Cost Center" groups="analytic.group_analytic_accounting"/>
+                                <field name="company_id" groups="base.group_multi_company" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="cost_purpose"/>
+                                <field name="object_nr"/>
+                                <field name="object_description"/>
+                                <field name="project_nr"/>
+                                <field name="project_description"/>
+                            </group>
+                            <group>
+                                <field name="wo_nr"/>
+                                <field name="name" string="WO Description"/>
+                                <field name="part_nr"/>
+                                <field name="part_description"/>
+                                <field name="po_nr"/>
+                                <field name="po_line"/>
+                            </group>
+                        </group>
+                        <label for="invoice_id"/>
+                        <field name="invoice_id"/>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_invoice_line" model="ir.actions.act_window">
+            <field name="name">Supplier invoice lines</field>
+            <field name="res_model">account.invoice.line</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+            <field name="domain">[('parent_type','=','in_invoice')]</field>
+        </record>
+        <menuitem action="account.action_invoice_tree2" id="account.menu_action_invoice_tree2" parent="account.menu_finance_payables" sequence="8"/>
+        <menuitem action="action_invoice_line" id="menu_action_invoice_line" parent="account.menu_finance_payables" sequence="9"/>
+
+        <record id="view_invoice_export_form" model="ir.ui.view">
+            <field name="name">account.invoice.export.form</field>
+            <field name="model">account.export</field>
+            <field name="arch" type="xml">
+                <form string="Invoice export" version="7.0" edit="0" create="0" delete="0">
+                    <field name='state' invisible="1"/>
+                    <field name="datas_fname" invisible="1" />
+                    <field name="invoice_ids" attrs="{'invisible': [('state', '=', 'saved')]}">
+                        <tree string="Invoices" create="0" edit="0" delete="true"> 
+                            <field name="state" invisible="1"/>
+                            <field name="number"/>
+                            <field name="partner_id"/>
+                            <field name="currency_id"/>
+                            <field name="date_invoice"/>
+                            <field name="date_due"/>
+                            <field name="amount_total"/>
+                        </tree>
+                    </field>
+                    <field name="file" filename="datas_fname" attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                    <footer>
+                        <button name="export" string="Export" type="object" class="oe_highlight" attrs="{'invisible': [('state', '=', 'saved')]}"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+
+        <record id="action_export_invoice" model="ir.actions.act_window">
+            <field name="name">Send invoices to CMMS</field>
+            <field name="res_model">account.export</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+        <menuitem action="action_export_invoice" id="menu_action_export_invoice" parent="account.menu_finance_payables" sequence="9"/>
+
+        <record id="view_purchase_receipt_form_lct" model="ir.ui.view">
+            <field name="name">account.voucher.purchase</field>
+            <field name="inherit_id" ref="account_voucher.view_purchase_receipt_form"/>
+            <field name="model">account.voucher</field>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='journal_id']" position="after">
+                    <field name="template"/>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</openerp>
