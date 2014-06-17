@@ -29,7 +29,10 @@
     'description': """
         LCT supplier invoice
     """,
-    'data': ['account_view.xml'],
+    'data': [
+        'account_view.xml',
+        'cron/export_supplier_invoices.xml'
+    ],
     'css':['static/src/css/lct.css'],
     'js': ['static/src/js/lct.js'],
     'images': [],

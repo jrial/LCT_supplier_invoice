@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<openerp>
+    <data>
+
+        <record id="ir_cron_auto_promote" model="ir.cron">
+            <field name="name">Export draft invoices to CMMS</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False"/>
+            <field name="model" eval="'account.export'"/>
+            <field name="function" eval="'auto_export'"/>
+            <field name="args" eval="'(False,)'"/>
+            <field name="active" eval="1"/>
+        </record>
+
+    </data>
+</openerp>

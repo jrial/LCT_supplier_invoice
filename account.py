@@ -26,7 +26,9 @@ import csv
 import base64
 from cStringIO import StringIO
 import datetime
+import os
 
+default_domain = [('type', '=', 'in_invoice'), ('state', '=', 'draft'), ('synchronized', '=', False)]
 class res_partner(osv.osv):
     _name = "res.partner"
     _inherit = "res.partner"
@@ -195,9 +197,9 @@ class account_export(osv.osv_memory):
         if wiz.use_criteria:
             criteria = []
             if wiz.date_from:
-                criteria.append(('date_invoice', '>=', wiz.date_from))
+                criteria.append(('create_date', '>=', wiz.date_from))
             if wiz.date_to:
-                criteria.append(('date_invoice', '<=', wiz.date_to))
+                criteria.append(('create_date', '<=', wiz.date_to))
             if wiz.invoice_number_from:
                 criteria.append(('internal_number', '>=', wiz.invoice_number_from))
             if wiz.invoice_number_to:
@@ -208,6 +210,38 @@ class account_export(osv.osv_memory):
             invoice_ids = wiz.invoice_ids
         if len(invoice_ids)==0:
             return True
+        data = self.get_export_data(cr, uid, invoice_ids, context=context)
+
+        encode_text = base64.encodestring(data)
+        self.write(cr, uid, ids, {
+            'file': encode_text,
+            'state': 'saved',
+            'datas_fname': 'supplier_invoice_' + str(datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')) + '.csv'
+            }, context=context)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Export Invoice to CMMS',
+            'res_model': 'account.export',
+            'res_id': ids[0],
+            'view_mode': 'form',
+            'view_type': 'form',
+            'target': 'new',
+            'context': context,
+        }
+
+
+    def auto_export(self, cr, uid, force_run=False):
+        base_path = self.pool.get('ir.config_parameter').get_param(cr, uid, 'LCT_supplier_invoice.base_path_export', default='/tmp')
+        invoice_reg = self.pool.get('account.invoice')
+        inv_ids = invoice_reg.search(cr, uid, default_domain)
+        invoices = invoice_reg.browse(cr, uid, inv_ids)
+        filename = os.path.join(base_path, "invoice_cmms_%s.csv" % (datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d_%H:%M:%S'), ))
+        data = self.get_export_data(cr, uid, invoices)
+        with open(filename, 'wb') as ondisk:
+            ondisk.write(data)
+
+    def get_export_data(self, cr, uid, invoice_ids, context=None):
+        invoice_reg = self.pool.get('account.invoice')
         for inv in invoice_ids:
             invoice_reg.action_date_assign(cr, uid, [inv.id])
             invoice_reg.action_move_create(cr, uid, [inv.id])
@@ -238,29 +272,13 @@ class account_export(osv.osv_memory):
         fp.seek(0)
         data = fp.read()
         fp.close()
-
-        encode_text = base64.encodestring(data)
-        self.write(cr, uid, ids, {
-            'file': encode_text,
-            'state': 'saved',
-            'datas_fname': 'supplier_invoice_' + str(datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')) + '.csv'
-            }, context=context)
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Export Invoice to CMMS',
-            'res_model': 'account.export',
-            'res_id': ids[0],
-            'view_mode': 'form',
-            'view_type': 'form',
-            'target': 'new',
-            'context': context,
-        }
+        return data
 
     def _get_invoices(self, cr, uid, context=None):
-        return self.pool.get("account.invoice").search(cr, uid, [('type', '=', 'in_invoice'), ('state', '=', 'draft'), ('synchronized', '=', False)], context=context)
+        return self.pool.get("account.invoice").search(cr, uid, default_domain, context=context)
 
     _columns = {
-        'invoice_ids': fields.many2many('account.invoice', string="Export", domain=[('type', '=', 'in_invoice'), ('state', '=', 'draft'), ('synchronized', '=', False)]),
+        'invoice_ids': fields.many2many('account.invoice', string="Export", domain=default_domain),
         'datas_fname': fields.char("File Name", 128),
         'file': fields.binary('File', readonly=True),
         'state': fields.selection([
