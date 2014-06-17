@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from openerp.osv import fields, osv, orm
+from openerp.osv import fields, osv
 from openerp.tools.translate import _
 from openerp import netsvc
 import csv
@@ -131,8 +131,6 @@ class account_invoice(osv.osv):
 
             invoice_line_reg = self.pool.get('account.invoice.line')
             invoice_tax_reg = self.pool.get('account.invoice.tax')
-            move_reg = self.pool.get('account.move')
-            wf_service = netsvc.LocalService("workflow")
 
             if to_synch_ids:
                 invoice_line_ids = invoice_line_reg.search(cr, uid, [('invoice_id', 'in', to_synch_ids)], context=context)
@@ -193,7 +191,6 @@ class account_export(osv.osv_memory):
     def export(self, cr, uid, ids, context=None):
         invoice_reg = self.pool.get('account.invoice')
         wiz = self.browse(cr, uid, ids, context=context)[0]
-        wf_service = netsvc.LocalService('workflow')
 
         if wiz.use_criteria:
             criteria = []
