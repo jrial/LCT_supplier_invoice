@@ -191,14 +191,27 @@ class account_export(osv.osv_memory):
     _name = "account.export"
 
     def export(self, cr, uid, ids, context=None):
-        invoice_reg = self.pool.get("account.invoice")
-        wiz = self.browse(cr, uid, ids, context=context)[0]
-        wf_service = netsvc.LocalService("workflow")
-
-        if len(wiz.invoice_ids)==0:
-            return True
         invoice_reg = self.pool.get('account.invoice')
-        for inv in wiz.invoice_ids:
+        wiz = self.browse(cr, uid, ids, context=context)[0]
+        wf_service = netsvc.LocalService('workflow')
+
+        if wiz.use_criteria:
+            criteria = []
+            if wiz.date_from:
+                criteria.append(('date_invoice', '>=', wiz.date_from))
+            if wiz.date_to:
+                criteria.append(('date_invoice', '<=', wiz.date_to))
+            if wiz.invoice_number_from:
+                criteria.append(('internal_number', '>=', wiz.invoice_number_from))
+            if wiz.invoice_number_to:
+                criteria.append(('internal_number', '<=', wiz.invoice_number_to))
+            invoice_ids_ids = invoice_reg.search(cr, uid, criteria, context=context)
+            invoice_ids = invoice_reg.browse(cr, uid, invoice_ids_ids, context=context)
+        else:
+            invoice_ids = wiz.invoice_ids
+        if len(invoice_ids)==0:
+            return True
+        for inv in invoice_ids:
             invoice_reg.action_date_assign(cr, uid, [inv.id])
             invoice_reg.action_move_create(cr, uid, [inv.id])
             invoice_reg.action_number(cr, uid, [inv.id])
@@ -206,7 +219,7 @@ class account_export(osv.osv_memory):
 
         # the export
         fields = ['id', 'partner_id', 'currency_id', 'date_invoice', 'date_due', 'invoice_line/price_subtotal', 'invoice_line/invoice_line_tax_id', 'amount_total', 'internal_number', 'po_number']
-        rows = invoice_reg.export_data(cr, uid, [inv.id for inv in wiz.invoice_ids], fields, context=context)
+        rows = invoice_reg.export_data(cr, uid, [inv.id for inv in invoice_ids], fields, context=context)
         fp = StringIO()
         writer = csv.writer(fp, quoting=csv.QUOTE_ALL, delimiter=';')
 
@@ -256,6 +269,11 @@ class account_export(osv.osv_memory):
         'state': fields.selection([
             ('draft','Draft'),
             ('saved', 'Saved')], readonly=True),
+        'use_criteria': fields.boolean('Search by criteria'),
+        'date_from': fields.date('From date'),
+        'date_to': fields.date('To date'),
+        'invoice_number_from': fields.char('From invoice number', size=32),
+        'invoice_number_to': fields.char('To invoice number', size=32),
     }
     _defaults = {
         'invoice_ids': _get_invoices,
